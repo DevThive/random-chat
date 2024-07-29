@@ -1,0 +1,38 @@
+.header {
+  display: flex;
+  justify-content: space-between; /* 좌우 정렬 */
+  align-items: center; /* 세로 가운데 정렬 */
+  padding: 15px 30px; /* 패딩 */
+  background-color: #333; /* 배경 색상 */
+  color: white; /* 텍스트 색상 */
+}
+
+.logo {
+  font-size: 24px; /* 로고 크기 */
+  font-weight: bold; /* 두껍게 */
+}
+
+.navbar {
+  display: flex; /* Flexbox 사용 */
+}
+
+.nav-list {
+  list-style: none; /* 리스트 스타일 제거 */
+  display: flex; /* Flexbox 사용 */
+  margin: 0; /* 기본 마진 제거 */
+  padding: 0; /* 기본 패딩 제거 */
+}
+
+.nav-item {
+  margin-left: 20px; /* 항목 간격 */
+}
+
+.nav-item a {
+  color: white; /* 링크 색상 */
+  text-decoration: none; /* 밑줄 제거 */
+  transition: color 0.3s; /* 색상 변경 시 애니메이션 */
+}
+
+.nav-item a:hover {
+  color: #ffcc00; /* 호버 시 색상 변경 */
+}
