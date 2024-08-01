@@ -21,6 +21,15 @@ const Chat = () => {
   const [isComposing, setIsComposing] = useState(false);
   const [roomInput, setRoomInput] = useState(""); // 방 이름 입력 상태
 
+  // URL에서 region 파라미터를 가져오고 방 이름으로 설정
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const region = params.get("region");
+    if (region) {
+      setRoom(region);
+    }
+  }, []);
+
   useEffect(() => {
     if (room) {
       socket = io("http://localhost:4000");
@@ -119,7 +128,6 @@ const Chat = () => {
           </div>
         </>
       )}
-
       <style jsx>{`
         .container {
           max-width: 800px;
