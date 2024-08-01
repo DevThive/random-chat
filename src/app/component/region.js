@@ -25,6 +25,19 @@ const regions = [
   { value: "daegu", label: "대구" },
   { value: "incheon", label: "인천" },
   { value: "jeju", label: "제주도" },
+  { value: "gwangju", label: "광주" },
+  { value: "daejeon", label: "대전" },
+  { value: "ulsan", label: "울산" },
+  { value: "sejong", label: "세종" },
+  { value: "gyeonggi", label: "경기도" },
+  { value: "gangwon", label: "강원도" },
+  { value: "chungbuk", label: "충청북도" },
+  { value: "chungnam", label: "충청남도" },
+  { value: "jeonbuk", label: "전라북도" },
+  { value: "jeonnam", label: "전라남도" },
+  { value: "gyungbuk", label: "경상북도" },
+  { value: "gyungnam", label: "경상남도" },
+  { value: "busan", label: "부산" },
 ];
 
 const styles = {

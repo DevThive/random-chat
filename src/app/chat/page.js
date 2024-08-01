@@ -5,35 +5,39 @@ import io from "socket.io-client";
 
 let socket;
 
-const randomNicknames = ["사용자1", "사용자2", "사용자3", "사용자4", "사용자5"];
-
-const getRandomNickname = () => {
-  const randomIndex = Math.floor(Math.random() * randomNicknames.length);
-  return randomNicknames[randomIndex];
-};
-
 const Chat = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [room, setRoom] = useState("");
-  const [nickname] = useState(getRandomNickname());
+  const [nickname, setNickname] = useState(""); // 사용자 이름 상태
   const chatWindowRef = useRef(null);
   const [isComposing, setIsComposing] = useState(false);
   const [roomInput, setRoomInput] = useState(""); // 방 이름 입력 상태
 
-  // URL에서 region 파라미터를 가져오고 방 이름으로 설정
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const region = params.get("region");
     if (region) {
-      setRoom(region);
+      setRoom(region); // 지역 정보를 방 이름으로 설정
+    }
+
+    // 로컬 스토리지에서 사용자 이름 가져오기
+    const storedNickname = localStorage.getItem("username");
+    if (storedNickname) {
+      setNickname(storedNickname); // 로컬 스토리지에서 사용자 이름 설정
+    } else {
+      const username = prompt("사용자 이름을 입력하세요:"); // 사용자에게 이름 입력 요청
+      if (username) {
+        setNickname(username);
+        localStorage.setItem("username", username); // 로컬 스토리지에 사용자 이름 저장
+      }
     }
   }, []);
 
   useEffect(() => {
     if (room) {
       socket = io("http://localhost:4000");
-      socket.emit("join", room);
+      socket.emit("join", { room, username: nickname }); // 방에 입장 시 닉네임 전송
 
       socket.on("message", (msg) => {
         setMessages((prevMessages) => [...prevMessages, msg]);
@@ -43,7 +47,7 @@ const Chat = () => {
         socket.disconnect();
       };
     }
-  }, [room]);
+  }, [room, nickname]); // 방과 닉네임이 바뀔 때마다 소켓 연결
 
   useEffect(() => {
     if (chatWindowRef.current) {
@@ -74,9 +78,12 @@ const Chat = () => {
   };
 
   const joinRoom = () => {
-    if (roomInput.trim()) {
+    if (roomInput.trim() && nickname.trim()) {
       setRoom(roomInput); // 방 이름 설정
+      socket.emit("join", { room: roomInput, username: nickname }); // 방에 입장 시 닉네임 전송
       setRoomInput(""); // 입력 필드 초기화
+    } else {
+      alert("방 이름과 닉네임을 입력해주세요."); // 방 이름이나 닉네임이 비어 있을 경우 경고
     }
   };
 
@@ -140,13 +147,6 @@ const Chat = () => {
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
           display: flex;
           flex-direction: column; /* 세로 방향으로 정렬 */
-        }
-
-        .header {
-          height: 60px; /* 헤더 높이 설정 */
-          display: flex;
-          align-items: center; /* 세로 가운데 정렬 */
-          margin-bottom: 20px; /* 헤더와 채팅창 간격 */
         }
 
         .chat-window {
