@@ -19,30 +19,47 @@ const OnlineUsers = () => {
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
       setMyUsername(storedUsername);
-      socket.emit("join", { room: "default", username: storedUsername }); // 방 이름과 사용자 이름 전송
+      socket.emit("join", { room: "default", username: storedUsername });
     } else {
       const username = prompt("사용자 이름을 입력하세요:");
-      if (username) {
+
+      // 금지 단어 체크
+      const containsForbiddenWord = forbiddenWords.some(
+        (word) => username && username.includes(word)
+      );
+
+      if (username && !containsForbiddenWord) {
         setMyUsername(username);
-        localStorage.setItem("username", username); // 로컬 스토리지에 사용자 이름 저장
-        socket.emit("join", { room: "default", username }); // 방 이름과 사용자 이름 전송
+        localStorage.setItem("username", username);
+        socket.emit("join", { room: "default", username });
+
+        // 사용자 목록 초기화
+        setUsers((prevUsers) =>
+          prevUsers.map((user) => ({ ...user, unreadMessages: 0 }))
+        );
+      } else if (containsForbiddenWord) {
+        alert(
+          "닉네임에 금지 단어가 포함되어 있습니다. 다른 닉네임을 입력해 주세요."
+        );
+        setMyUsername(""); // 상태 초기화
+        window.location.reload();
       }
     }
 
     socket.on("updateUsers", (userList) => {
-      console.log("사용자 목록 업데이트:", userList); // 리스트가 업데이트될 때 로그 출력
+      console.log("사용자 목록 업데이트:", userList);
       setUsers(userList); // 사용자 목록 업데이트
     });
 
     socket.on("userJoined", (newUser) => {
       setUsers((prevUsers) => {
-        // 중복된 사용자 이름이 있는지 확인
         if (!prevUsers.some((user) => user.username === newUser.username)) {
           return [...prevUsers, newUser];
         }
-        return prevUsers; // 중복이 있을 경우 그대로 반환
+        return prevUsers;
       });
     });
+
     socket.on("privateMessage", (message) => {
       console.log(
         `Received message from ${message.from} to ${message.to}: ${message.message}`
@@ -50,15 +67,25 @@ const OnlineUsers = () => {
 
       setChatMessages((prevMessages) => [...prevMessages, message]);
 
-      // 로컬 스토리지에 채팅 내용 저장
-      saveChatMessages(message.from, message.to, message.message); // 상대방 메시지 저장
+      // 메시지 수 업데이트
+      setUsers((prevUsers) => {
+        return prevUsers.map((user) => {
+          if (user.username === message.from) {
+            return {
+              ...user,
+              unreadMessages: (user.unreadMessages || 0) + 1, // 메시지 수 증가
+            };
+          }
+          return user;
+        });
+      });
     });
+
     // 5초마다 사용자 목록 요청
     const intervalId = setInterval(() => {
       socket.emit("getUsers"); // 서버에 사용자 목록 요청
-    }, 5000);
+    }, 10000);
 
-    // 컴포넌트 언마운트 시 소켓 연결 해제 및 인터벌 클리어
     return () => {
       clearInterval(intervalId);
       socket.disconnect();
@@ -74,12 +101,25 @@ const OnlineUsers = () => {
   const handleUserClick = (username) => {
     setCurrentChatUser(username); // 현재 채팅 중인 사용자 설정
     setIsModalOpen(true); // 모달 열기
-    setChatMessages(loadChatMessages(username)); // 이전 채팅 메시지 로드
+    loadChatMessages(username); // 이전 채팅 메시지 로드
   };
+
+  const forbiddenWords = ["시발", "병신", "금지어3"]; // 금지 단어 목록
 
   const handleSendMessage = () => {
     if (!currentChatUser) {
       alert("채팅할 사용자를 선택해주세요.");
+      return;
+    }
+
+    // 금지 단어 체크
+    const containsForbiddenWord = forbiddenWords.some((word) =>
+      message.includes(word)
+    );
+
+    if (containsForbiddenWord) {
+      alert("메시지에 금지 단어가 포함되어 있습니다.");
+      setMessage(""); // 메시지 입력 초기화
       return;
     }
 
@@ -91,26 +131,17 @@ const OnlineUsers = () => {
 
     socket.emit("privateMessage", messageData); // 개인 메시지 전송
     setChatMessages((prevMessages) => [...prevMessages, messageData]); // 메시지 목록 업데이트
-    saveChatMessages(myUsername, currentChatUser, message); // 본인 메시지 저장
     setMessage(""); // 메시지 입력 초기화
   };
-  const saveChatMessages = (from, to, message) => {
-    if (!from || !to) {
-      console.error("메시지를 저장할 때 'from' 또는 'to' 값이 누락되었습니다.");
-      return;
-    }
 
-    const chatKey = `${from}-${to}`;
-    const existingMessages = JSON.parse(localStorage.getItem(chatKey)) || [];
-    existingMessages.push({ from, to, message }); // 'to' 속성 추가
-    localStorage.setItem(chatKey, JSON.stringify(existingMessages));
-  };
-
+  // Redis 서버에서 채팅 메시지를 불러오는 함수
   const loadChatMessages = (username) => {
     const chatKey = `${myUsername}-${username}`;
-    return JSON.parse(localStorage.getItem(chatKey)) || [];
+    socket.emit("getChatMessages", { chatKey }); // Redis 서버에 채팅 메시지 요청
+    socket.on("chatMessages", (messages) => {
+      setChatMessages(messages); // 받은 메시지 상태 업데이트
+    });
   };
-
   return (
     <div style={styles.container}>
       <h3 style={styles.title}>현재 접속 중인 사용자</h3>
@@ -127,6 +158,11 @@ const OnlineUsers = () => {
             onClick={() => handleUserClick(user.username)} // 사용자 클릭 시 개인 채팅 시작
           >
             {user.username}
+            {user.unreadMessages > 0 && (
+              <span style={{ marginLeft: "8px", color: "red" }}>
+                {user.unreadMessages}개
+              </span>
+            )}
           </li>
         ))}
       </ul>
