@@ -1,232 +1,96 @@
 "use client";
-// pages/index.js
-import { useEffect, useState, useRef } from "react";
-import io from "socket.io-client";
-
-let socket;
-
-const randomNicknames = ["사용자1", "사용자2", "사용자3", "사용자4", "사용자5"];
-
-const getRandomNickname = () => {
-  const randomIndex = Math.floor(Math.random() * randomNicknames.length);
-  return randomNicknames[randomIndex];
-};
+// app/page.js
+import React, { useState } from "react"; // useState 추가
+import RegionList from "./component/region";
+import ChatList from "./component/chatlist";
+import OnlineUsers from "./component/OnlineUsers"; // 추가된 부분
+import Chat from "./chat/page"; // 채팅 컴포넌트 추가
 
 const Home = () => {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [room, setRoom] = useState("default");
-  const [nickname] = useState(getRandomNickname());
-  const [image, setImage] = useState(null);
-  const chatWindowRef = useRef(null);
+  const [currentRoom, setCurrentRoom] = useState(null); // 현재 방 상태 추가
 
-  useEffect(() => {
-    socket = io("http://localhost:4000");
-
-    socket.emit("join", room);
-
-    socket.on("message", (msg) => {
-      setMessages((prevMessages) => [...prevMessages, msg]);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [room]);
-
-  useEffect(() => {
-    if (chatWindowRef.current) {
-      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  // useEffect(() => {
-  //   socket.on("message", (msg) => {
-  //     console.log("Received message from server:", msg); // 수신된 메시지 확인
-  //     setMessages((prevMessages) => [...prevMessages, msg]);
-  //   });
-  // }, []);
-
-  const sendMessage = () => {
-    if (message.trim()) {
-      socket.emit("message", { room, user: nickname, text: message });
-      setMessage("");
-    }
+  const handleJoinRoom = (roomName) => {
+    setCurrentRoom(roomName); // 방 이름을 업데이트
   };
-
-  // const sendImage = () => {
-  //   if (image) {
-  //     const reader = new FileReader();
-  //     reader.onloadend = () => {
-  //       console.log(reader.result); // 이미지 데이터 확인
-  //       socket.emit("message", { room, user: nickname, image: reader.result });
-  //       setImage(null);
-  //     };
-  //     reader.readAsDataURL(image);
-  //   }
-  // };
-
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setImage(file);
-      sendImage(file); // 이미지가 선택될 때 바로 전송
-    }
-  };
-
-  const sendImage = (file) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        console.log(reader.result); // 이미지 데이터 확인
-        socket.emit("message", { room, user: nickname, image: reader.result });
-        setImage(null); // 이미지 상태 초기화
-      };
-      reader.readAsDataURL(file); // 파일을 데이터 URL로 읽기
-    }
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      sendMessage();
-    }
-  };
-
-  // const handleImageChange = (event) => {
-  //   const file = event.target.files[0];
-  //   if (file) {
-  //     setImage(file);
-  //   }
-  // };
 
   return (
-    <div className="container">
-      <h1>랜덤 채팅</h1>
-      <div className="chat-window" ref={chatWindowRef}>
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className="message"
-            style={{ color: msg.user === nickname ? "red" : "black" }}
-          >
-            <strong>{msg.user}</strong>: {msg.text}
-            {msg.image && (
-              <img
-                src={msg.image}
-                alt="전송된 이미지"
-                className="message-image"
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="input-container">
-        <label
-          htmlFor="image-upload"
-          style={{ cursor: "pointer", marginRight: "10px" }}
-        >
-          <span style={{ fontSize: "24px", lineHeight: "0" }}>+</span>
-          <input
-            id="image-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            style={{ display: "none" }} // 숨기기
-          />
-        </label>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="메시지를 입력하세요"
-          style={{ flex: 1, marginRight: "10px" }} // 입력창을 더 넓게
-        />
-        <button onClick={sendMessage}>전송</button>
+    <div style={styles.container}>
+      <div style={styles.leftContainer}>
+        <div style={styles.regionContainer}>
+          <RegionList />
+        </div>
+        <div style={styles.onlineUsersContainer}>
+          <OnlineUsers />
+        </div>
       </div>
 
-      <style jsx>{`
-        .input-container {
-          display: flex; /* Flexbox를 사용하여 수평 정렬 */
-          align-items: center; /* 세로 가운데 정렬 */
-        }
+      <div style={styles.chatContainer}>
+        {currentRoom ? (
+          <Chat room={currentRoom} /> // 현재 방으로 채팅 컴포넌트 렌더링
+        ) : (
+          <ChatList onJoinRoom={handleJoinRoom} /> // ChatList에 onJoinRoom 함수 전달
+        )}
+      </div>
 
-        .input-container input[type="file"] {
-          display: none; /* 파일 입력 버튼 숨기기 */
-        }
-
-        .input-container label {
-          background-color: #f0f0f0; /* 배경색 */
-          border-radius: 50%; /* 원 모양 */
-          width: 40px; /* 크기 */
-          height: 40px; /* 크기 */
-          display: flex; /* Flexbox 사용 */
-          justify-content: center; /* 가로 가운데 정렬 */
-          align-items: center; /* 세로 가운데 정렬 */
-          cursor: pointer; /* 커서 변경 */
-        }
-
-        .input-container button {
-          margin-left: 10px; /* 버튼 간격 */
-        }
-
-        .container {
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .chat-window {
-          height: 400px;
-          overflow-y: auto;
-          border: 1px solid #ccc;
-          border-radius: 8px;
-          padding: 10px;
-          margin-bottom: 10px;
-          background-color: #fafafa;
-        }
-
-        .message {
-          margin: 5px 0;
-        }
-
-        .message-image {
-          max-width: 100%;
-          max-height: 200px;
-          margin-top: 5px;
-        }
-
-        .input-container {
-          display: flex;
-          align-items: center;
-        }
-
-        input[type="text"] {
-          flex: 1;
-          padding: 10px;
-          border-radius: 4px;
-          border: 1px solid #ccc;
-        }
-
-        button {
-          padding: 10px 15px;
-          margin-left: 10px;
-          background-color: #0070f3;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        button:hover {
-          background-color: #005bb5;
-        }
-      `}</style>
+      <aside style={styles.advertisement}>
+        <h3>광고</h3>
+        <p>여기에 광고를 넣을 수 있습니다.</p>
+      </aside>
     </div>
   );
+};
+
+const styles = {
+  container: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "20px",
+    gap: "20px",
+    flexWrap: "wrap",
+    height: "92vh",
+    boxSizing: "border-box", // 패딩을 포함하여 높이 계산
+  },
+  leftContainer: {
+    display: "flex",
+    flexDirection: "column",
+    flex: "1",
+  },
+  regionContainer: {
+    flex: "1",
+    minHeight: "200px", // 최소 높이를 px 단위로 설정
+    marginBottom: "20px", // 아래쪽 여백 추가
+    borderRadius: "5px",
+    backgroundColor: "#fff",
+    padding: "10px", // 내부 여백 추가
+    boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)", // 그림자 추가
+  },
+  onlineUsersContainer: {
+    flex: "1", // flex: "2"에서 "1"로 변경
+    minHeight: "200px",
+    borderRadius: "5px",
+    backgroundColor: "#fff",
+    padding: "10px",
+    boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+  },
+  chatContainer: {
+    flex: "1",
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    borderRadius: "5px",
+    backgroundColor: "#fff",
+    padding: "10px",
+    boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+  },
+  advertisement: {
+    width: "20%",
+    minWidth: "200px",
+    padding: "10px",
+    border: "1px solid #ccc",
+    borderRadius: "5px",
+    backgroundColor: "#f9f9f9",
+    boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+  },
 };
 
 export default Home;
