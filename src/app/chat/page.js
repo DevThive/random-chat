@@ -45,7 +45,10 @@ const Chat = ({ room }) => {
 
   useEffect(() => {
     if (currentRoom) {
-      socket = io("http://43.203.75.81:4000");
+      const socket = io("http://43.203.75.81:4000", {
+        withCredentials: true, // 쿠키와 같은 인증 정보를 포함할지 여부
+      });
+
       socket.emit("join", { room: currentRoom, username: nickname }); // 방에 입장 시 닉네임 전송
 
       socket.on("message", (msg) => {

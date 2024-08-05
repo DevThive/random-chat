@@ -4,7 +4,10 @@ import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import Modal from "react-modal"; // 모달 라이브러리 추가
 
-const socket = io("http://43.203.75.81:4000"); // 서버 URL에 맞게 수정
+const socket = io("http://43.203.75.81:4000", {
+  withCredentials: true, // 쿠키와 같은 인증 정보를 포함할지 여부
+});
+// 서버 URL에 맞게 수정
 
 const OnlineUsers = () => {
   const [users, setUsers] = useState([]); // 사용자 목록 상태
