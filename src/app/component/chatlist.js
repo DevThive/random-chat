@@ -4,7 +4,10 @@ import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client"; // socket.io-client 임포트
 import Modal from "./chatlistmodal";
 
-const socket = io("http://43.203.75.81:4000"); // WebSocket 서버에 연결
+const socket = io("http://43.203.75.81:4000", {
+  withCredentials: true, // 쿠키와 같은 인증 정보를 포함할지 여부
+});
+// WebSocket 서버에 연결
 
 const ChatList = ({ onJoinRoom }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
