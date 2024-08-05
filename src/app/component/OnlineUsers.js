@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import Modal from "react-modal"; // 모달 라이브러리 추가
 
-const socket = io("http://localhost:4000"); // 서버 URL에 맞게 수정
+const socket = io("http://43.203.75.81:4000"); // 서버 URL에 맞게 수정
 
 const OnlineUsers = () => {
   const [users, setUsers] = useState([]); // 사용자 목록 상태
@@ -17,6 +17,7 @@ const OnlineUsers = () => {
   useEffect(() => {
     // 로컬 스토리지에서 사용자 이름 가져오기
     const storedUsername = localStorage.getItem("username");
+
     if (storedUsername) {
       setMyUsername(storedUsername);
       socket.emit("join", { room: "default", username: storedUsername });
@@ -37,7 +38,7 @@ const OnlineUsers = () => {
         setUsers((prevUsers) =>
           prevUsers.map((user) => ({ ...user, unreadMessages: 0 }))
         );
-      } else if (containsForbiddenWord) {
+      } else {
         alert(
           "닉네임에 금지 단어가 포함되어 있습니다. 다른 닉네임을 입력해 주세요."
         );
@@ -46,9 +47,30 @@ const OnlineUsers = () => {
       }
     }
 
+    const updateUserList = (userList) => {
+      setUsers((prevUsers) => {
+        const updatedUsers = userList.map((user) => {
+          const existingUser = prevUsers.find(
+            (u) => u.username === user.username
+          );
+          return {
+            ...user,
+            unreadMessages: existingUser ? existingUser.unreadMessages : 0, // 기존 메시지 수 유지
+          };
+        });
+
+        // 중복 사용자 제거
+        const uniqueUsers = Array.from(
+          new Set(updatedUsers.map((u) => u.username))
+        ).map((username) => updatedUsers.find((u) => u.username === username));
+
+        return uniqueUsers;
+      });
+    };
+
     socket.on("updateUsers", (userList) => {
       console.log("사용자 목록 업데이트:", userList);
-      setUsers(userList); // 사용자 목록 업데이트
+      updateUserList(userList); // 사용자 목록 업데이트
     });
 
     socket.on("userJoined", (newUser) => {
@@ -64,7 +86,6 @@ const OnlineUsers = () => {
       console.log(
         `Received message from ${message.from} to ${message.to}: ${message.message}`
       );
-
       setChatMessages((prevMessages) => [...prevMessages, message]);
 
       // 메시지 수 업데이트
@@ -84,11 +105,13 @@ const OnlineUsers = () => {
     // 5초마다 사용자 목록 요청
     const intervalId = setInterval(() => {
       socket.emit("getUsers"); // 서버에 사용자 목록 요청
-    }, 10000);
+    }, 5000);
 
     return () => {
       clearInterval(intervalId);
-      socket.disconnect();
+      socket.off("updateUsers"); // 이벤트 리스너 정리
+      socket.off("userJoined");
+      socket.off("privateMessage");
     };
   }, []);
 
@@ -102,6 +125,19 @@ const OnlineUsers = () => {
     setCurrentChatUser(username); // 현재 채팅 중인 사용자 설정
     setIsModalOpen(true); // 모달 열기
     loadChatMessages(username); // 이전 채팅 메시지 로드
+
+    // 클릭 시 읽지 않은 메시지 수 초기화
+    setUsers((prevUsers) => {
+      return prevUsers.map((user) => {
+        if (user.username === username) {
+          return {
+            ...user,
+            unreadMessages: 0, // 읽음 처리
+          };
+        }
+        return user;
+      });
+    });
   };
 
   const forbiddenWords = ["시발", "병신", "금지어3"]; // 금지 단어 목록
@@ -223,7 +259,7 @@ const modalStyles = {
 
 const styles = {
   container: {
-    padding: "20px",
+    padding: "10px",
     fontFamily: "Arial, sans-serif",
   },
   title: {

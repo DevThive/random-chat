@@ -14,9 +14,10 @@ const Header = () => {
           <li className="nav-item">
             <a href="#about">소개</a>
           </li>
-          <li className="nav-item">
-            <Link href="/chat">채팅</Link> {/* 채팅 페이지 링크 */}
-          </li>
+          {/* <li className="nav-item">
+            <Link href="/chat">채팅</Link> {/* 채팅 페이지 링크 
+          </li> */}
+
           {/* <li className="nav-item">
             <a href="#contact">연락처</a>
           </li> */}

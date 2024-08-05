@@ -44,7 +44,7 @@ const styles = {
   sidebar: {
     flex: "1", // 남은 공간을 차지하도록 설정
     minHeight: "200px", // 최소 높이 설정
-    // padding: "20px",
+    padding: "10px",
     borderRadius: "8px",
     backgroundColor: "#ffffff",
   },

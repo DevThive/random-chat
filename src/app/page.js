@@ -1,10 +1,18 @@
+"use client";
 // app/page.js
-import React from "react";
+import React, { useState } from "react"; // useState 추가
 import RegionList from "./component/region";
 import ChatList from "./component/chatlist";
 import OnlineUsers from "./component/OnlineUsers"; // 추가된 부분
+import Chat from "./chat/page"; // 채팅 컴포넌트 추가
 
 const Home = () => {
+  const [currentRoom, setCurrentRoom] = useState(null); // 현재 방 상태 추가
+
+  const handleJoinRoom = (roomName) => {
+    setCurrentRoom(roomName); // 방 이름을 업데이트
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.leftContainer}>
@@ -17,7 +25,11 @@ const Home = () => {
       </div>
 
       <div style={styles.chatContainer}>
-        <ChatList />
+        {currentRoom ? (
+          <Chat room={currentRoom} /> // 현재 방으로 채팅 컴포넌트 렌더링
+        ) : (
+          <ChatList onJoinRoom={handleJoinRoom} /> // ChatList에 onJoinRoom 함수 전달
+        )}
       </div>
 
       <aside style={styles.advertisement}>
